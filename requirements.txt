@@ -1,0 +1,4 @@
+mutagen~=1.46.0
+PyQt6~=6.4.0
+python_mpd2~=3.0.5
+qasync~=0.23.0
