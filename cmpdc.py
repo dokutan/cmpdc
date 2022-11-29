@@ -4,6 +4,8 @@ import asyncio
 import functools
 import sys
 import os
+import re
+import glob
 import mutagen
 
 from PyQt6.QtGui import *
@@ -35,6 +37,20 @@ def format_duration(duration):
         return "{:d}:{:02d}:{:02d}".format(h, m, s)
     else:
         return "{:02d}:{:02d}".format(m, s)
+
+
+def albumart_file_or_none(dir):
+    """Looks for an image to be used as albumart in dir"""
+    try:
+        files = \
+            glob.glob(dir + "/*.[Pp][Nn][Gg]") + \
+            glob.glob(dir + "/*.[Jj][Pp][Gg]") + \
+            glob.glob(dir + "/*.[Jj][Pp][Ee][Gg]")
+
+        with open(files[0], "rb") as albumart:
+            return albumart.read()
+    except:
+        return None
 
 
 class MPDClient2(MPDClient):
@@ -213,26 +229,29 @@ class MainWindow(QWidget):
 
     def init_shortcuts(self):
         # show tabs
-        tab1 = QShortcut(QKeySequence('Ctrl+1'), self)
+        tab1 = QShortcut(QKeySequence("Ctrl+1"), self)
         tab1.activated.connect(lambda: self.tabs.setCurrentIndex(0))
-        tab2 = QShortcut(QKeySequence('Ctrl+2'), self)
+        tab2 = QShortcut(QKeySequence("Ctrl+2"), self)
         tab2.activated.connect(lambda: self.tabs.setCurrentIndex(1))
-        tab3 = QShortcut(QKeySequence('Ctrl+3'), self)
+        tab3 = QShortcut(QKeySequence("Ctrl+3"), self)
         tab3.activated.connect(lambda: self.tabs.setCurrentIndex(2))
-        tab4 = QShortcut(QKeySequence('Ctrl+4'), self)
+        tab4 = QShortcut(QKeySequence("Ctrl+4"), self)
         tab4.activated.connect(lambda: self.tabs.setCurrentIndex(3))
-        tab5 = QShortcut(QKeySequence('Ctrl+5'), self)
+        tab5 = QShortcut(QKeySequence("Ctrl+5"), self)
         tab5.activated.connect(lambda: self.tabs.setCurrentIndex(4))
 
-        center_current = QShortcut(QKeySequence('Ctrl+C'), self)
+        center_current = QShortcut(QKeySequence("Ctrl+C"), self)
         center_current.activated.connect(self.center_on_current_song)
 
+        update_db = QShortcut(QKeySequence("F5"), self)
+        update_db.activated.connect(lambda: self.client.update())
+
         # control playback
-        toggle = QShortcut(QKeySequence('Ctrl+Space'), self)
+        toggle = QShortcut(QKeySequence("Ctrl+Space"), self)
         toggle.activated.connect(lambda: self.client.toggle())
-        toggle = QShortcut(QKeySequence('Ctrl+Left'), self)
+        toggle = QShortcut(QKeySequence("Ctrl+Left"), self)
         toggle.activated.connect(lambda: self.client.previous())
-        toggle = QShortcut(QKeySequence('Ctrl+Right'), self)
+        toggle = QShortcut(QKeySequence("Ctrl+Right"), self)
         toggle.activated.connect(lambda: self.client.next())
 
     def create_lst_queue(self):
@@ -312,7 +331,8 @@ class MainWindow(QWidget):
         hbox.addWidget(self.btn_playlist_delete)
 
         self.btn_playlist_add = QPushButton("Add")
-        self.btn_playlist_add.clicked.connect(lambda: QInputDialog.getText(self, "New playlist", "Name:"))
+        self.btn_playlist_add.clicked.connect(
+            lambda: QInputDialog.getText(self, "New playlist", "Name:"))
         hbox.addWidget(self.btn_playlist_add)
 
         buttons_playlists.setLayout(hbox)
@@ -400,33 +420,42 @@ class MainWindow(QWidget):
                 + "  •  " +
                 (currentsong["album"] if "album" in currentsong else "—"))
 
-            # change current cover
+            # try to get current cover from mpd
             albumart = await self.client.albumart_or_none()
+
+            # get detailed song info using mutagen
+            file_path = os.path.join(music_directory, currentsong["file"])
+            try:
+                mutagen_file = mutagen.File(file_path)
+                mutagen_info = mutagen_file.pprint()
+
+                text = \
+                    "<h3>File</h3>" + file_path + \
+                    "<h3>Audio</h3>" + \
+                    re.sub("\n[^=]+=", lambda s: ("<h3>" + s.group(0).replace("\n",
+                           "").replace("=", "").capitalize() + "</h3>"), mutagen_info)
+                text = text.replace("\n", "<br/>")
+                self.lbl_current_info.setHtml(text)
+
+                # if mpd has no cover, try getting one using mutagen
+                try:
+                    if albumart == None:
+                        albumart = mutagen_file.pictures[0].data
+                except:
+                    pass
+            except:
+                self.lbl_current_info.setText("")
+
+            # if neither mpd nor mutagen has a cover, look in the filesystem
+            if albumart == None:
+                albumart = albumart_file_or_none(os.path.dirname(file_path))
+
+            # show current cover
             image = QImage()
             image.loadFromData(albumart)
             pixmap = QPixmap(image)
             self.cvr_current.setPixmap(pixmap)
             self.cvr_current.repaint()
-
-            # change song info
-            try:
-                self.lbl_current_info.setText(mutagen.File(os.path.join(
-                    music_directory, currentsong["file"])).pprint())
-                #info = dict(mutagen.File(os.path.join(
-                #    music_directory, currentsong["file"])).tags)
-
-                #text = ""
-                ## print(info.tags)
-                #for tag, value in sorted(info.items()):
-                #    if type(tag) is str:
-                #        value = list(value)[0]
-                #        text += (
-                #            "<h3>" + tag.capitalize() + "</h3>" +
-                #            value.replace("\n", "<br/>") + "<br/>"
-                #        )
-                #self.lbl_current_info.setHtml(text)
-            except:
-                self.lbl_current_info.setText("")
 
     async def update_playlist(self):
         """Update the widgets when the playlist subsystem has changed"""
