@@ -280,7 +280,7 @@ class MainWindow(QWidget):
             if event.key() == Qt.Key.Key_Delete:
                 indexes = sorted(lst_queue.selectedIndexes(), reverse=True)
                 self.skip_playlist_update = True
-                
+
                 # delete songs from widget
                 for current_index in indexes:
                     lst_queue.takeItem(current_index.row())
@@ -315,6 +315,28 @@ class MainWindow(QWidget):
         self.lst_search.itemDoubleClicked.connect(
             lambda i: self.client.add(self.search_results[self.lst_search.row(i)]["file"]))
         vbox.addWidget(self.lst_search)
+
+        # key press event
+        self.lst_search.keyPressEvent_old = self.lst_search.keyPressEvent
+
+        def keyPressEvent_new(event):
+            # replace queue
+            if event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_R:
+                self.client.clear()
+                indexes = sorted(self.lst_search.selectedIndexes())
+                for index in indexes:
+                    self.client.add(self.search_results[index.row()]["file"])
+                self.client.play()
+
+            # add to queue
+            elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_P:
+                indexes = sorted(self.lst_search.selectedIndexes())
+                for index in indexes:
+                    self.client.add(self.search_results[index.row()]["file"])
+
+            else:
+                self.lst_search.keyPressEvent_old(event)
+        self.lst_search.keyPressEvent = keyPressEvent_new
 
         return tab_search
 
@@ -441,7 +463,7 @@ class MainWindow(QWidget):
                         "<h3>File</h3>" + file_path + \
                         "<h3>Audio</h3>" + \
                         re.sub("\n[^=]+=", lambda s: ("<h3>" + s.group(0).replace("\n",
-                            "").replace("=", "").capitalize() + "</h3>"), mutagen_info)
+                                                                                  "").replace("=", "").capitalize() + "</h3>"), mutagen_info)
                     text = text.replace("\n", "<br/>")
                     self.lbl_current_info.setHtml(text)
 
@@ -456,7 +478,8 @@ class MainWindow(QWidget):
 
                 # if neither mpd nor mutagen has a cover, look in the filesystem
                 if albumart == None:
-                    albumart = albumart_file_or_none(os.path.dirname(file_path))
+                    albumart = albumart_file_or_none(
+                        os.path.dirname(file_path))
 
             # set background of play queue to cover
             # if albumart != None:
