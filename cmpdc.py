@@ -188,7 +188,7 @@ class MainWindow(QWidget):
 
         self.sld_progress = QSlider(Qt.Orientation.Horizontal)
         self.sld_progress.setMinimum(0)
-        self.sld_progress.sliderReleased.connect(
+        self.sld_progress.sliderMoved.connect(
             lambda: self.client.seekcur(self.sld_progress.value()))
         progress_layout.addWidget(self.sld_progress)
 
@@ -258,7 +258,7 @@ class MainWindow(QWidget):
         lst_queue = QListWidget()
         lst_queue.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         lst_queue.setSelectionMode(
-            QAbstractItemView.SelectionMode.ExtendedSelection)
+            QAbstractItemView.SelectionMode.ContiguousSelection)
         lst_queue.itemDoubleClicked.connect(
             lambda i: self.client.play(self.lst_queue.row(i)))
 
@@ -278,11 +278,18 @@ class MainWindow(QWidget):
 
         def keyPressEvent_new(event):
             if event.key() == Qt.Key.Key_Delete:
-                for current_index in sorted(lst_queue.selectedIndexes(), reverse=True):
-                    current_row = current_index.row()
-                    lst_queue.takeItem(current_row)
-                    self.skip_playlist_update = True
-                    self.client.delete(current_row)
+                indexes = sorted(lst_queue.selectedIndexes(), reverse=True)
+                self.skip_playlist_update = True
+                
+                # delete songs from widget
+                for current_index in indexes:
+                    lst_queue.takeItem(current_index.row())
+
+                # and from the mpd  queue
+                if len(indexes) == 1:
+                    self.client.delete(indexes[0].row())
+                else:
+                    self.client.delete((indexes[-1].row(), indexes[0].row()+1))
             elif event.key() == Qt.Key.Key_Space or event.key() == Qt.Key.Key_Return:
                 self.client.play(self.lst_queue.currentRow())
             else:
@@ -424,31 +431,40 @@ class MainWindow(QWidget):
             albumart = await self.client.albumart_or_none()
 
             # get detailed song info using mutagen
-            file_path = os.path.join(music_directory, currentsong["file"])
-            try:
-                mutagen_file = mutagen.File(file_path)
-                mutagen_info = mutagen_file.pprint()
-
-                text = \
-                    "<h3>File</h3>" + file_path + \
-                    "<h3>Audio</h3>" + \
-                    re.sub("\n[^=]+=", lambda s: ("<h3>" + s.group(0).replace("\n",
-                           "").replace("=", "").capitalize() + "</h3>"), mutagen_info)
-                text = text.replace("\n", "<br/>")
-                self.lbl_current_info.setHtml(text)
-
-                # if mpd has no cover, try getting one using mutagen
+            if "file" in currentsong:
+                file_path = os.path.join(music_directory, currentsong["file"])
                 try:
-                    if albumart == None:
-                        albumart = mutagen_file.pictures[0].data
-                except:
-                    pass
-            except:
-                self.lbl_current_info.setText("")
+                    mutagen_file = mutagen.File(file_path)
+                    mutagen_info = mutagen_file.pprint()
 
-            # if neither mpd nor mutagen has a cover, look in the filesystem
-            if albumart == None:
-                albumart = albumart_file_or_none(os.path.dirname(file_path))
+                    text = \
+                        "<h3>File</h3>" + file_path + \
+                        "<h3>Audio</h3>" + \
+                        re.sub("\n[^=]+=", lambda s: ("<h3>" + s.group(0).replace("\n",
+                            "").replace("=", "").capitalize() + "</h3>"), mutagen_info)
+                    text = text.replace("\n", "<br/>")
+                    self.lbl_current_info.setHtml(text)
+
+                    # if mpd has no cover, try getting one using mutagen
+                    try:
+                        if albumart == None:
+                            albumart = mutagen_file.pictures[0].data
+                    except:
+                        pass
+                except:
+                    self.lbl_current_info.setText("")
+
+                # if neither mpd nor mutagen has a cover, look in the filesystem
+                if albumart == None:
+                    albumart = albumart_file_or_none(os.path.dirname(file_path))
+
+            # set background of play queue to cover
+            # if albumart != None:
+            #    with open("./cover", "wb") as f:
+            #        f.write(albumart)
+            #    self.lst_queue.setStyleSheet("background: url(./cover)")
+            # else:
+            #    pass
 
             # show current cover
             image = QImage()
