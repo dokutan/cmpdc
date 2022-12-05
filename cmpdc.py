@@ -285,10 +285,10 @@ class MainWindow(QWidget):
                 for current_index in indexes:
                     lst_queue.takeItem(current_index.row())
 
-                # and from the mpd  queue
+                # and from the mpd queue
                 if len(indexes) == 1:
                     self.client.delete(indexes[0].row())
-                else:
+                elif len(indexes) > 1:
                     self.client.delete((indexes[-1].row(), indexes[0].row()+1))
             elif event.key() == Qt.Key.Key_Space or event.key() == Qt.Key.Key_Return:
                 self.client.play(self.lst_queue.currentRow())
@@ -322,11 +322,12 @@ class MainWindow(QWidget):
         def keyPressEvent_new(event):
             # replace queue
             if event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_R:
-                self.client.clear()
                 indexes = sorted(self.lst_search.selectedIndexes())
-                for index in indexes:
-                    self.client.add(self.search_results[index.row()]["file"])
-                self.client.play()
+                if len(indexes) > 0:
+                    self.client.clear()
+                    for index in indexes:
+                        self.client.add(self.search_results[index.row()]["file"])
+                    self.client.play()
 
             # add to queue
             elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_P:
@@ -574,7 +575,7 @@ async def main():
             functools.partial(close_future, future, loop)
         )
 
-    app.setStyle('Adwaita-Dark')
+    app.setStyle("Adwaita-Dark")
 
     main_window = MainWindow()
     main_window.show()

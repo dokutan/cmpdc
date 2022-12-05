@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Name=cmpdc
+Exec=sh -c "$HOME/.local/bin/cmpdc.py"
