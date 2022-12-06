@@ -426,6 +426,10 @@ class MainWindow(QWidget):
 
     async def update_progress(self):
         """Update the song progress widgets"""
+        def format_queue_position(status):
+            return ((status["song"] if "song" in status else "—") + " / " +
+                    (status["playlistlength"] if "playlistlength" in status else "—"))
+
         try:
             status = await self.client.status()
             song_progress = int(float(status["elapsed"]))
@@ -434,7 +438,8 @@ class MainWindow(QWidget):
             self.sld_progress.setValue(song_progress)
             self.lbl_progress.setText(
                 format_duration(song_progress) + " / " +
-                format_duration(song_duration)
+                format_duration(song_duration) +
+                "  (" + format_queue_position(status) + ")"
             )
         except:
             self.sld_progress.setValue(0)
