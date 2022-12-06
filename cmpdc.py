@@ -348,22 +348,24 @@ class MainWindow(QWidget):
         hbox = QHBoxLayout()
 
         self.cmb_playlist = QComboBox()
-        self.cmb_playlist.addItem("todo")
         self.cmb_playlist.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred)
         hbox.addWidget(self.cmb_playlist)
 
+        @asyncSlot()
+        async def load_playlist(playlist):
+            await self.client.clear()
+            await self.client.load(playlist)
+            self.client.play()
+
         self.btn_playlist_play = QPushButton("Play")
+        self.btn_playlist_play.clicked.connect(lambda: load_playlist(self.cmb_playlist.currentText()))
         hbox.addWidget(self.btn_playlist_play)
 
         self.btn_playlist_delete = QPushButton("Delete")
+        self.btn_playlist_delete.clicked.connect(lambda: self.client.rm(self.cmb_playlist.currentText()))
         hbox.addWidget(self.btn_playlist_delete)
-
-        self.btn_playlist_add = QPushButton("Add")
-        self.btn_playlist_add.clicked.connect(
-            lambda: QInputDialog.getText(self, "New playlist", "Name:"))
-        hbox.addWidget(self.btn_playlist_add)
 
         buttons_playlists.setLayout(hbox)
         vbox.addWidget(buttons_playlists)
@@ -393,6 +395,7 @@ class MainWindow(QWidget):
         await self.update_progress()
         await self.update_options()
         await self.update_playlist()
+        await self.update_stored_playlist()
 
         async for subsystems in self.client.idle():
             #logging.debug("Change in ", subsystems)
@@ -403,6 +406,8 @@ class MainWindow(QWidget):
                 await self.update_options()
             if "playlist" in subsystems:
                 await self.update_playlist()
+            if "stored_playlist" in subsystems:
+                await self.update_stored_playlist()
 
     async def update_progress(self):
         """Update the song progress widgets"""
@@ -526,6 +531,13 @@ class MainWindow(QWidget):
         status = await self.client.status()
         if "random" in status:
             self.btn_random.setChecked(status["random"] == "1")
+
+    async def update_stored_playlist(self):
+        playlists = await self.client.listplaylists()
+
+        self.cmb_playlist.clear()
+        for p in playlists:
+            self.cmb_playlist.addItem(p["playlist"])
 
     @asyncSlot()
     async def update_lst_search(self):
