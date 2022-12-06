@@ -478,6 +478,8 @@ class MainWindow(QWidget):
             # try to get current cover from mpd
             albumart = await self.client.albumart_or_none(currentsong=currentsong)
             if albumart == None:
+                logging.debug(
+                    "albumart() returned no picture, trying readpicture()")
                 albumart = await self.client.readpicture_or_none(currentsong=currentsong)
 
             # get detailed song info using mutagen
@@ -487,6 +489,8 @@ class MainWindow(QWidget):
                     mutagen_file = mutagen.File(file_path)
                     mutagen_info = mutagen_file.pprint()
 
+                    # there doesn't seem to be a format independent way to access tag data,
+                    # therefore the pprint() output is used and gets modified
                     text = \
                         "<h3>File</h3>" + file_path + \
                         "<h3>Audio</h3>" + \
@@ -498,16 +502,21 @@ class MainWindow(QWidget):
                     # if mpd has no cover, try getting one using mutagen
                     try:
                         if albumart == None:
+                            logging.debug(
+                                "readpicture() returned no picture, trying mutagen")
                             albumart = mutagen_file.pictures[0].data
                     except:
                         pass
                 except:
                     self.lbl_current_info.setText("")
+                    logging.warn("Failed to obtain song information using mutagen")
 
                 # if neither mpd nor mutagen has a cover, look in the filesystem
                 if albumart == None:
-                    albumart = albumart_file_or_none(
-                        os.path.dirname(file_path))
+                    dir_path = os.path.dirname(file_path)
+                    logging.debug(
+                        "mutagen returned no picture, looking in " + dir_path)
+                    albumart = albumart_file_or_none(dir_path)
 
             # set background of play queue to cover
             # if albumart != None:
