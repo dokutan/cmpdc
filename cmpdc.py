@@ -485,8 +485,8 @@ class MainWindow(QWidget):
                     text = \
                         "<h3>File</h3>" + file_path + \
                         "<h3>Audio</h3>" + \
-                        re.sub("\n[^=]+=", lambda s: ("<h3>" + s.group(0).replace("\n",
-                                                                                  "").replace("=", "").capitalize() + "</h3>"), mutagen_info)
+                        re.sub("\n.+=",
+                               lambda s: ("<h3>" + s.group(0).replace("\n", "").capitalize() + "</h3>").replace("=</h3>", "</h3>"), mutagen_info)
                     text = text.replace("\n", "<br/>")
                     self.lbl_current_info.setHtml(text)
 
