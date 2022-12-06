@@ -67,11 +67,23 @@ class MPDClient2(MPDClient):
             self.play()
 
     @asyncSlot()
-    async def albumart_or_none(self):
+    async def albumart_or_none(self, currentsong=None):
         """Returns the albumart of the current song or None"""
         try:
-            currentsong = await self.currentsong()
+            if currentsong == None:
+                currentsong = await self.currentsong()
             albumart = await self.albumart(currentsong["file"])
+            return albumart["binary"]
+        except:
+            return None
+
+    @asyncSlot()
+    async def readpicture_or_none(self, currentsong=None):
+        """Returns the albumart of the current song or None"""
+        try:
+            if currentsong == None:
+                currentsong = await self.currentsong()
+            albumart = await self.readpicture(currentsong["file"])
             return albumart["binary"]
         except:
             return None
@@ -326,7 +338,8 @@ class MainWindow(QWidget):
                 if len(indexes) > 0:
                     self.client.clear()
                     for index in indexes:
-                        self.client.add(self.search_results[index.row()]["file"])
+                        self.client.add(
+                            self.search_results[index.row()]["file"])
                     self.client.play()
 
             # add to queue
@@ -360,11 +373,13 @@ class MainWindow(QWidget):
             self.client.play()
 
         self.btn_playlist_play = QPushButton("Play")
-        self.btn_playlist_play.clicked.connect(lambda: load_playlist(self.cmb_playlist.currentText()))
+        self.btn_playlist_play.clicked.connect(
+            lambda: load_playlist(self.cmb_playlist.currentText()))
         hbox.addWidget(self.btn_playlist_play)
 
         self.btn_playlist_delete = QPushButton("Delete")
-        self.btn_playlist_delete.clicked.connect(lambda: self.client.rm(self.cmb_playlist.currentText()))
+        self.btn_playlist_delete.clicked.connect(
+            lambda: self.client.rm(self.cmb_playlist.currentText()))
         hbox.addWidget(self.btn_playlist_delete)
 
         buttons_playlists.setLayout(hbox)
@@ -456,7 +471,9 @@ class MainWindow(QWidget):
                 (currentsong["album"] if "album" in currentsong else "—"))
 
             # try to get current cover from mpd
-            albumart = await self.client.albumart_or_none()
+            albumart = await self.client.albumart_or_none(currentsong=currentsong)
+            if albumart == None:
+                albumart = await self.client.readpicture_or_none(currentsong=currentsong)
 
             # get detailed song info using mutagen
             if "file" in currentsong:
