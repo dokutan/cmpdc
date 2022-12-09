@@ -1,5 +1,5 @@
 # cmpdc
-A simple mpd client, inspired by Cantata and suckless software.
+A simple mpd client using Qt 6, inspired by Cantata and suckless software.
 
 Features include:
 - simple playlist management
