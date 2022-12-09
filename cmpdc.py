@@ -142,6 +142,7 @@ class MainWindow(QWidget):
         self.skip_playlist_update = False
         self.last_currentsong = None
         self.skip_progress_update = False
+        self.song_progress = None
 
         self.client = MPDClient2()
         self.async_init()
@@ -214,8 +215,14 @@ class MainWindow(QWidget):
 
         self.sld_progress = QSlider(Qt.Orientation.Horizontal)
         self.sld_progress.setMinimum(0)
-        self.sld_progress.sliderMoved.connect(
-            lambda: self.client.seekcur(self.sld_progress.value()))
+
+        def sld_progress_valueChanged():
+            value = self.sld_progress.value()
+            if self.song_progress != value:
+                logging.debug("song progress slider set to: " + str(value))
+                self.client.seekcur(value)
+
+        self.sld_progress.valueChanged.connect(sld_progress_valueChanged)
         progress_layout.addWidget(self.sld_progress)
 
         self.lbl_progress = QLabel("— / —")
@@ -450,6 +457,7 @@ class MainWindow(QWidget):
             status = await self.client.status()
             song_progress = int(float(status["elapsed"]))
             song_duration = int(float(status["duration"]))
+            self.song_progress = song_progress
             self.sld_progress.setMaximum(song_duration)
             self.sld_progress.setValue(song_progress)
             self.lbl_progress.setText(
