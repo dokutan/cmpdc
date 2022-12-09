@@ -39,6 +39,20 @@ def format_duration(duration):
         return "{:02d}:{:02d}".format(m, s)
 
 
+def format_song(song):
+    """Formats a song for the queue, search results, …"""
+    return "%s\t%s\n\t%s  •  %s  •  %s" % (
+        (song["track"] if "track" in song else "—"),
+        (song["title"] if "title" in song else (
+            song["file"] if "file" in song else "—"
+        )),
+        (song["artist"] if "artist" in song else "—"),
+        (song["album"] if "album" in song else "—"),
+        (format_duration(int(float(song["duration"])))
+         if "duration" in song else "—")
+    )
+
+
 def albumart_file_or_none(dir):
     """Looks for an image to be used as albumart in dir"""
     try:
@@ -364,6 +378,8 @@ class MainWindow(QWidget):
         self.cmb_playlist.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred)
+        self.cmb_playlist.currentIndexChanged.connect(
+            lambda: self.show_stored_playlist())
         hbox.addWidget(self.cmb_playlist)
 
         @asyncSlot()
@@ -509,7 +525,8 @@ class MainWindow(QWidget):
                         pass
                 except:
                     self.lbl_current_info.setText("")
-                    logging.warn("Failed to obtain song information using mutagen")
+                    logging.warn(
+                        "Failed to obtain song information using mutagen")
 
                 # if neither mpd nor mutagen has a cover, look in the filesystem
                 if albumart == None:
@@ -547,14 +564,7 @@ class MainWindow(QWidget):
             self.lst_queue.takeItem(i)
 
         for track in playlist:
-            self.lst_queue.addItem("%s\t%s\n\t%s  •  %s" % (
-                (track["track"] if "track" in track else "—"),
-                (track["title"] if "title" in track else (
-                    track["file"] if "file" in track else "—"
-                )),
-                (track["artist"] if "artist" in track else "—"),
-                (track["album"] if "album" in track else "—")
-            ))
+            self.lst_queue.addItem(format_song(track))
 
     async def update_options(self):
         """Update the widgets when the options subsystem has changed"""
@@ -570,6 +580,18 @@ class MainWindow(QWidget):
         for p in playlists:
             self.cmb_playlist.addItem(p["playlist"])
 
+        self.show_stored_playlist()
+
+    @asyncSlot()
+    async def show_stored_playlist(self):
+        playlist = await self.client.listplaylistinfo(self.cmb_playlist.currentText())
+
+        for i in range(self.lst_playlist.count()-1, -1, -1):
+            self.lst_playlist.takeItem(i)
+
+        for track in playlist:
+            self.lst_playlist.addItem(format_song(track))
+
     @asyncSlot()
     async def update_lst_search(self):
         self.search_results = await self.client.search("any", self.edt_search.text())
@@ -578,14 +600,7 @@ class MainWindow(QWidget):
             self.lst_search.takeItem(i)
 
         for track in self.search_results:
-            self.lst_search.addItem("%s\t%s\n\t%s  •  %s" % (
-                (track["track"] if "track" in track else "—"),
-                (track["title"] if "title" in track else (
-                    track["file"] if "file" in track else "—"
-                )),
-                (track["artist"] if "artist" in track else "—"),
-                (track["album"] if "album" in track else "—")
-            ))
+            self.lst_search.addItem(format_song(track))
 
     @asyncSlot()
     async def center_on_current_song(self, currentsong=None):
