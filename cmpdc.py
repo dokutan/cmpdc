@@ -6,17 +6,18 @@ import sys
 import os
 import re
 import glob
-import mutagen
+import logging
 
 from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 
-import logging
 from mpd.asyncio import MPDClient
 
+import mutagen
+
 import qasync
-from qasync import asyncSlot, asyncClose, QApplication, QThreadExecutor
+from qasync import asyncSlot, asyncClose, QApplication
 
 # config
 mpd_host = "localhost"
@@ -24,7 +25,11 @@ mpd_port = 6600
 mpd_passwd = ""
 music_directory = os.getenv("HOME") + "/Music"
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+    level=logging.INFO
+)
 
 
 def format_duration(duration):
@@ -84,7 +89,7 @@ class MPDClient2(MPDClient):
     async def albumart_or_none(self, currentsong=None):
         """Returns the albumart of the current song or None"""
         try:
-            if currentsong == None:
+            if currentsong is None:
                 currentsong = await self.currentsong()
             albumart = await self.albumart(currentsong["file"])
             return albumart["binary"]
@@ -95,7 +100,7 @@ class MPDClient2(MPDClient):
     async def readpicture_or_none(self, currentsong=None):
         """Returns the albumart of the current song or None"""
         try:
-            if currentsong == None:
+            if currentsong is None:
                 currentsong = await self.currentsong()
             albumart = await self.readpicture(currentsong["file"])
             return albumart["binary"]
@@ -114,7 +119,7 @@ class CoverWidget(QWidget):
         self.pixmap = pixmap
 
     def paintEvent(self, event):
-        if self.pixmap != None:
+        if self.pixmap is not None:
             x = 0
             y = 0
 
@@ -429,11 +434,13 @@ class MainWindow(QWidget):
     async def check_for_updates(self):
         """Check for state changes"""
 
-        await self.update_player()
-        await self.update_progress()
-        await self.update_options()
-        await self.update_playlist()
-        await self.update_stored_playlist()
+        asyncio.gather(
+            self.update_player(),
+            self.update_progress(),
+            self.update_options(),
+            self.update_playlist(),
+            self.update_stored_playlist()
+        )
 
         async for subsystems in self.client.idle():
             #logging.debug("Change in ", subsystems)
@@ -450,8 +457,12 @@ class MainWindow(QWidget):
     async def update_progress(self):
         """Update the song progress widgets"""
         def format_queue_position(status):
-            return ((status["song"] if "song" in status else "—") + " / " +
-                    (status["playlistlength"] if "playlistlength" in status else "—"))
+            try:
+                song = int(status["song"]) + 1
+                return (str(song) + " / " + status["playlistlength"])
+            except Exception as e:
+                logging.error(e)
+                return "— / —"
 
         try:
             status = await self.client.status()
@@ -501,7 +512,7 @@ class MainWindow(QWidget):
 
             # try to get current cover from mpd
             albumart = await self.client.albumart_or_none(currentsong=currentsong)
-            if albumart == None:
+            if albumart is None:
                 logging.debug(
                     "albumart() returned no picture, trying readpicture()")
                 albumart = await self.client.readpicture_or_none(currentsong=currentsong)
@@ -525,7 +536,7 @@ class MainWindow(QWidget):
 
                     # if mpd has no cover, try getting one using mutagen
                     try:
-                        if albumart == None:
+                        if albumart is None:
                             logging.debug(
                                 "readpicture() returned no picture, trying mutagen")
                             albumart = mutagen_file.pictures[0].data
@@ -537,7 +548,7 @@ class MainWindow(QWidget):
                         "Failed to obtain song information using mutagen")
 
                 # if neither mpd nor mutagen has a cover, look in the filesystem
-                if albumart == None:
+                if albumart is None:
                     dir_path = os.path.dirname(file_path)
                     logging.debug(
                         "mutagen returned no picture, looking in " + dir_path)
@@ -612,7 +623,7 @@ class MainWindow(QWidget):
 
     @asyncSlot()
     async def center_on_current_song(self, currentsong=None):
-        if currentsong == None:
+        if currentsong is None:
             currentsong = await self.client.currentsong()
 
         if "pos" in currentsong:
