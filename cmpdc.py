@@ -137,6 +137,42 @@ class CoverWidget(QWidget):
             painter.drawPixmap(x, y, pixmap)
 
 
+class ElidingLabel(QLabel):
+    """An eliding version of QLabel"""
+    def __init__(self, text=""):
+        super().__init__()
+
+        self.setSizePolicy(QSizePolicy.Policy.Expanding,
+                           QSizePolicy.Policy.Preferred)
+        self.setText(text)
+
+    def setText(self, text):
+        self.content = text
+        self.update()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+
+        painter = QPainter(self)
+        font_metrics = painter.fontMetrics()
+        content_width = font_metrics.horizontalAdvance(self.content)
+
+        text_layout = QTextLayout(self.content, painter.font())
+        text_layout.beginLayout()
+
+        line = text_layout.createLine()
+        line.setLineWidth(self.width())
+
+        if content_width > self.width():
+            elided_content = font_metrics.elidedText(
+                self.content, Qt.TextElideMode.ElideRight, self.width())
+            painter.drawText(QPointF(0, font_metrics.ascent()), elided_content)
+        else:
+            painter.drawText(QPointF(self.width() - content_width, font_metrics.ascent()), self.content)
+
+        text_layout.endLayout()
+
+
 class MainWindow(QWidget):
     """The main class containing all widgets"""
 
@@ -204,12 +240,12 @@ class MainWindow(QWidget):
         # currently playing labels
         grid.setColumnStretch(5, 10)
 
-        self.lbl_current_title = QLabel("—")
+        self.lbl_current_title = ElidingLabel("—")
         self.lbl_current_title.setStyleSheet("font: bold 20px;")
         self.lbl_current_title.setAlignment(Qt.AlignmentFlag.AlignRight)
         grid.addWidget(self.lbl_current_title, 0, 5, 1, 2)
 
-        self.lbl_current_artist_album = QLabel("—  •  —")
+        self.lbl_current_artist_album = ElidingLabel("—  •  —")
         self.lbl_current_artist_album.setAlignment(Qt.AlignmentFlag.AlignRight)
         grid.addWidget(self.lbl_current_artist_album, 1, 5, 1, 2)
 
