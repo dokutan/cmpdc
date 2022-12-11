@@ -107,6 +107,16 @@ class MPDClient2(MPDClient):
         except:
             return None
 
+    @asyncSlot()
+    async def rm_save(self, name):
+        """Saves the queue as a playlist, even if the playlist exists"""
+        try:
+            self.rm(name)
+        except:
+            pass
+        finally:
+            self.save(name)
+
 
 class CoverWidget(QWidget):
     """A custom widget to display an album cover"""
@@ -139,6 +149,7 @@ class CoverWidget(QWidget):
 
 class ElidingLabel(QLabel):
     """An eliding version of QLabel"""
+
     def __init__(self, text=""):
         super().__init__()
 
@@ -168,7 +179,8 @@ class ElidingLabel(QLabel):
                 self.content, Qt.TextElideMode.ElideRight, self.width())
             painter.drawText(QPointF(0, font_metrics.ascent()), elided_content)
         else:
-            painter.drawText(QPointF(self.width() - content_width, font_metrics.ascent()), self.content)
+            painter.drawText(QPointF(self.width() - content_width,
+                             font_metrics.ascent()), self.content)
 
         text_layout.endLayout()
 
@@ -184,6 +196,7 @@ class MainWindow(QWidget):
         self.last_currentsong = None
         self.skip_progress_update = False
         self.song_progress = None
+        self.playlists = None
 
         self.client = MPDClient2()
         self.async_init()
@@ -327,6 +340,34 @@ class MainWindow(QWidget):
         toggle.activated.connect(lambda: self.client.previous())
         toggle = QShortcut(QKeySequence("Ctrl+Right"), self)
         toggle.activated.connect(lambda: self.client.next())
+
+        # save queue
+        def save_queue_dialog():
+            dlg = QDialog(self)
+            dlg.setWindowTitle("Save Queue As")
+            vbox = QVBoxLayout(dlg)
+
+            cmb_playlist = QComboBox()
+            cmb_playlist.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            cmb_playlist.setEditable(True)
+            cmb_playlist.setInsertPolicy(QComboBox.InsertPolicy.InsertAtBottom)
+            vbox.addWidget(cmb_playlist)
+
+            for p in self.playlists:
+                cmb_playlist.addItem(p["playlist"])
+
+            QBtn = QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
+            button_box = QDialogButtonBox(QBtn)
+            button_box.accepted.connect(
+                lambda: (self.client.rm_save(cmb_playlist.currentText()), dlg.close()))
+            button_box.rejected.connect(lambda: dlg.close())
+            vbox.addWidget(button_box)
+
+            dlg.exec()
+
+        save_queue = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_queue.activated.connect(lambda: save_queue_dialog())
 
     def create_lst_queue(self):
         lst_queue = QListWidget()
@@ -630,10 +671,10 @@ class MainWindow(QWidget):
             self.btn_random.setChecked(status["random"] == "1")
 
     async def update_stored_playlist(self):
-        playlists = await self.client.listplaylists()
+        self.playlists = await self.client.listplaylists()
 
         self.cmb_playlist.clear()
-        for p in playlists:
+        for p in self.playlists:
             self.cmb_playlist.addItem(p["playlist"])
 
         self.show_stored_playlist()

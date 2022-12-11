@@ -30,3 +30,4 @@ cmpc is designed to be configured/customized by editing the source code.
 - Ctrl+Right: next
 - Ctrl+P: (search) append selection to queue
 - Ctrl+R: (search) replace queue with selection
+- Ctrl+S: save queue as playlist
