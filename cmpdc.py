@@ -426,8 +426,8 @@ class MainWindow(QWidget):
             try:
                 if not self.skip_progress_update:
                     await self.update_progress()
-            except:
-                pass
+            except Exception as e:
+                logging.error(e)
             finally:
                 await asyncio.sleep(1)
 
@@ -476,9 +476,10 @@ class MainWindow(QWidget):
                 format_duration(song_duration) +
                 "  (" + format_queue_position(status) + ")"
             )
-        except:
+        except Exception as e:
+            logging.warn(e)
             self.sld_progress.setValue(0)
-            self.lbl_progress.setText("— / —")
+            self.lbl_progress.setText("— / —  (— / —)")
 
     async def update_player(self):
         """Update the widgets when the player subsystem has changed"""
@@ -540,12 +541,12 @@ class MainWindow(QWidget):
                             logging.debug(
                                 "readpicture() returned no picture, trying mutagen")
                             albumart = mutagen_file.pictures[0].data
-                    except:
-                        pass
-                except:
+                    except Exception as e:
+                        logging.warning(e)
+                except Exception as e:
                     self.lbl_current_info.setText("")
-                    logging.warn(
-                        "Failed to obtain song information using mutagen")
+                    logging.warning(
+                        "Failed to obtain song information using mutagen: " + str(e))
 
                 # if neither mpd nor mutagen has a cover, look in the filesystem
                 if albumart is None:
