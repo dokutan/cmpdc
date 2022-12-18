@@ -31,6 +31,8 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+# disable QImage allocation limit
+os.environ['QT_IMAGEIO_MAXALLOC'] = "0"
 
 def format_duration(duration):
     """Formats a duration"""
