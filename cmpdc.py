@@ -278,7 +278,8 @@ class MainWindow(QWidget):
                 logging.debug("song progress slider set to: " + str(value))
                 self.client.seekcur(value)
 
-        self.sld_progress.valueChanged.connect(sld_progress_valueChanged)
+        #self.sld_progress.valueChanged.connect(sld_progress_valueChanged)
+        self.sld_progress.sliderMoved.connect(sld_progress_valueChanged)
         progress_layout.addWidget(self.sld_progress)
 
         self.lbl_progress = QLabel("— / —")
@@ -556,7 +557,7 @@ class MainWindow(QWidget):
                 "  (" + format_queue_position(status) + ")"
             )
         except Exception as e:
-            logging.warn(e)
+            logging.warning(e)
             self.sld_progress.setValue(0)
             self.lbl_progress.setText("— / —  (— / —)")
 
