@@ -14,6 +14,8 @@ from PyQt6.QtCore import *
 
 from mpd.asyncio import MPDClient
 
+from desktop_notifier import DesktopNotifier
+
 import mutagen
 
 import qasync
@@ -24,6 +26,8 @@ mpd_host = "localhost"
 mpd_port = 6600
 mpd_passwd = ""
 music_directory = os.getenv("HOME") + "/Music"
+theme = "Adwaita-Dark"
+desktop_notification = True
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s",
@@ -201,6 +205,7 @@ class MainWindow(QWidget):
         self.playlists = None
 
         self.client = MPDClient2()
+        self.notifier = DesktopNotifier()
         self.async_init()
 
     @asyncSlot()
@@ -343,6 +348,10 @@ class MainWindow(QWidget):
         toggle.activated.connect(lambda: self.client.previous())
         toggle = QShortcut(QKeySequence("Ctrl+Right"), self)
         toggle.activated.connect(lambda: self.client.next())
+
+        # kill/restart mpd
+        kill = QShortcut(QKeySequence("Ctrl+Shift+K"), self)
+        kill.activated.connect(lambda: os.system("systemctl --user kill -s SIGKILL mpd.service; systemctl --user start mpd.service"))
 
         # save queue
         def save_queue_dialog():
@@ -574,22 +583,25 @@ class MainWindow(QWidget):
             self.btn_toggle.setText("Play")
             self.skip_progress_update = True
 
+        # new song ?
         currentsong = await self.client.currentsong()
         if self.last_currentsong != currentsong:
             self.last_currentsong = currentsong
+
+            title = currentsong["title"] if "title" in currentsong else (currentsong["file"] if "file" in currentsong else "—")
+            artist = currentsong["artist"] if "artist" in currentsong else "—"
+            album = currentsong["album"] if "album" in currentsong else "—"
 
             # move to current song
             self.center_on_current_song(currentsong)
 
             # display song title/album/artist
-            self.lbl_current_title.setText(
-                currentsong["title"] if "title" in currentsong else (
-                    currentsong["file"] if "file" in currentsong else "—"
-                ))
-            self.lbl_current_artist_album.setText(
-                (currentsong["artist"] if "artist" in currentsong else "—")
-                + "  •  " +
-                (currentsong["album"] if "album" in currentsong else "—"))
+            self.lbl_current_title.setText(title)
+            self.lbl_current_artist_album.setText(f"{artist}  •  {album}")
+
+            # show desktop notification
+            if desktop_notification:
+                await self.notifier.send(title=title, message=f"{artist}  •  {album}", icon="")
 
             # try to get current cover from mpd
             albumart = await self.client.albumart_or_none(currentsong=currentsong)
@@ -733,7 +745,7 @@ async def main():
             functools.partial(close_future, future, loop)
         )
 
-    app.setStyle("Adwaita-Dark")
+    app.setStyle(theme)
 
     main_window = MainWindow()
     main_window.show()

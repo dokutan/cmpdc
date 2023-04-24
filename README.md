@@ -5,10 +5,10 @@ Features include:
 - simple playlist management
 - showing song metadata including lyrics (using mutagen)
 - multiple ways to obtain album covers
+- desktop notifications
 
 Features do not include:
 - using various internet services
-- Notifications
 - MPRIS
 
 ## Installation
@@ -31,3 +31,4 @@ cmpc is designed to be configured/customized by editing the source code.
 - Ctrl+P: (search) append selection to queue
 - Ctrl+R: (search) replace queue with selection
 - Ctrl+S: save queue as playlist
+- Crtl+Shift+K: kill and restart mpd
