@@ -600,7 +600,7 @@ class MainWindow(QWidget):
             self.lbl_current_artist_album.setText(f"{artist}  •  {album}")
 
             # show desktop notification
-            if desktop_notification:
+            if desktop_notification and not self.isActiveWindow():
                 await self.notifier.send(title=title, message=f"{artist}  •  {album}", icon="")
 
             # try to get current cover from mpd
