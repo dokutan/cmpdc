@@ -218,7 +218,8 @@ class MainWindow(QWidget):
         try:
             await asyncio.gather(
                 self.check_for_updates(),
-                self.check_for_progress()
+                self.check_for_progress(),
+                self.check_for_info()
             )
         except asyncio.exceptions.CancelledError:
             pass
@@ -318,6 +319,11 @@ class MainWindow(QWidget):
         self.tab_playlists = self.create_tab_playlists()
         self.tabs.addTab(self.tab_playlists, "Playlists")
 
+        # info
+        self.lbl_info = QTextEdit("")
+        self.lbl_info.setReadOnly(True)
+        self.tabs.addTab(self.lbl_info, "Info")
+
         self.setLayout(grid)
         self.setWindowTitle("cmpdc")
         self.show()
@@ -334,6 +340,8 @@ class MainWindow(QWidget):
         tab4.activated.connect(lambda: self.tabs.setCurrentIndex(3))
         tab5 = QShortcut(QKeySequence("Ctrl+5"), self)
         tab5.activated.connect(lambda: self.tabs.setCurrentIndex(4))
+        tab6 = QShortcut(QKeySequence("Ctrl+6"), self)
+        tab6.activated.connect(lambda: self.tabs.setCurrentIndex(5))
 
         center_current = QShortcut(QKeySequence("Ctrl+C"), self)
         center_current.activated.connect(self.center_on_current_song)
@@ -520,6 +528,18 @@ class MainWindow(QWidget):
             finally:
                 await asyncio.sleep(1)
 
+    async def check_for_info(self):
+        """Causes the info tab to be updated every second"""
+
+        while True:
+            try:
+                if self.tabs.currentIndex() == 5:
+                    await self.update_info()
+            except Exception as e:
+                logging.error(e)
+            finally:
+                await asyncio.sleep(1)
+
     async def check_for_updates(self):
         """Check for state changes"""
 
@@ -528,7 +548,8 @@ class MainWindow(QWidget):
             self.update_progress(),
             self.update_options(),
             self.update_playlist(),
-            self.update_stored_playlist()
+            self.update_stored_playlist(),
+            self.update_info()
         )
 
         async for subsystems in self.client.idle():
@@ -693,6 +714,26 @@ class MainWindow(QWidget):
             self.cmb_playlist.addItem(p["playlist"])
 
         self.show_stored_playlist()
+
+    async def update_info(self):
+        stats = await self.client.stats()
+        self.lbl_info.setHtml(f"""<h3>mpd statistics</h3>
+        <table>
+        <tr><td>artists: </td><td>{stats['artists']}</td></tr>
+        <tr><td>albums: </td><td>{stats['albums']}</td></tr>
+        <tr><td>songs:</t d><td>{stats['songs']}</td></tr>
+        <tr><td>db playtime: </td><td>{format_duration(int(stats['db_playtime']))}</td></tr>
+        <tr><td>uptime: </td><td>{format_duration(int(stats['uptime']))}</td></tr>
+        <tr><td>playtime: </td><td>{format_duration(int(stats['playtime']))}</td></tr>
+        </table>
+
+        <h3>cmpdc configuration</h3>
+        <table>
+        <tr><td>mpd_host: </td><td>{mpd_host}</td></tr>
+        <tr><td>mpd_port: </td><td>{mpd_port}</td></tr>
+        <tr><td>music_directory: </td><td>{music_directory}</td></tr>
+        </table>
+        """)
 
     @asyncSlot()
     async def show_stored_playlist(self):
