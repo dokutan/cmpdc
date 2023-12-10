@@ -346,6 +346,9 @@ class MainWindow(QWidget):
         center_current = QShortcut(QKeySequence("Ctrl+C"), self)
         center_current.activated.connect(self.center_on_current_song)
 
+        toggle_random = QShortcut(QKeySequence("Ctrl+D"), self)
+        toggle_random.activated.connect(lambda: self.client.random(0 if self.btn_random.isChecked() else 1))
+
         update_db = QShortcut(QKeySequence("F5"), self)
         update_db.activated.connect(lambda: self.client.update())
 

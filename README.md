@@ -22,8 +22,9 @@ cp cmpdc.desktop ~/.local/share/applications
 cmpc is designed to be configured/customized by editing the source code.
 
 ## Default keyboard shortcuts
-- Ctrl+1 - Ctrl+5: switch to tab 1-5
-- Ctrl+C: show current song
+- Ctrl+1 - Ctrl+6: switch to tab 1-6
+- Ctrl+C: show current song in the queue
+- Ctrl+D: toggle random playback
 - F5: update library
 - Ctrl+Space: toggle play/pause
 - Ctrl+Left: previous
