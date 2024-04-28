@@ -27,6 +27,7 @@ mpd_port = 6600
 mpd_passwd = ""
 music_directory = os.getenv("HOME") + "/Music"
 theme = "Adwaita-Dark"
+font = None # QFont("IBM Plex Serif") # can be None or a QFont
 desktop_notification = True
 
 logging.basicConfig(
@@ -791,6 +792,8 @@ async def main():
         )
 
     app.setStyle(theme)
+    if font is not None:
+        app.setFont(font)
 
     main_window = MainWindow()
     main_window.show()
