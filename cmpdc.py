@@ -331,7 +331,8 @@ class MainWindow(QWidget):
     def init_shortcuts(self):
         # show tabs
         tab1 = QShortcut(QKeySequence("Ctrl+1"), self)
-        tab1.activated.connect(lambda: self.tabs.setCurrentIndex(0))
+        tab1.activated.connect(lambda: (self.tabs.setCurrentIndex(0),
+                                        self.lst_queue.setFocus()))
         tab2 = QShortcut(QKeySequence("Ctrl+2"), self)
         tab2.activated.connect(lambda: self.tabs.setCurrentIndex(1))
         tab3 = QShortcut(QKeySequence("Ctrl+3"), self)
