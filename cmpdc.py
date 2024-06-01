@@ -27,7 +27,7 @@ mpd_port = 6600
 mpd_passwd = ""
 music_directory = os.getenv("HOME") + "/Music"
 theme = "Adwaita-Dark"
-font = None # QFont("IBM Plex Serif") # can be None or a QFont
+font = None  # QFont("IBM Plex Serif") # can be None or a QFont
 desktop_notification = True
 
 logging.basicConfig(
@@ -38,6 +38,7 @@ logging.basicConfig(
 
 # disable QImage allocation limit
 os.environ['QT_IMAGEIO_MAXALLOC'] = "0"
+
 
 def format_duration(duration):
     """Formats a duration"""
@@ -592,7 +593,7 @@ class MainWindow(QWidget):
                 "  (" + format_queue_position(status) + ")"
             )
         except Exception as e:
-            logging.warning(e)
+            logging.error(e)
             self.sld_progress.setValue(0)
             self.lbl_progress.setText("— / —  (— / —)")
 
