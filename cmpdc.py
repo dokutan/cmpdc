@@ -806,7 +806,7 @@ if __name__ == "__main__":
     try:
         # copied from: https://github.com/CabbageDevelopment/qasync/issues/68
         # the easy way breaks with Python 3.11, so we do the plumbing ourselves to work around it
-        if sys.version_info.major == 3 and sys.version_info.minor == 11:
+        if sys.version_info.major == 3 and sys.version_info.minor >= 11:
             with qasync._set_event_loop_policy(qasync.DefaultQEventLoopPolicy()):
                 runner = asyncio.runners.Runner()
                 try:
@@ -814,6 +814,6 @@ if __name__ == "__main__":
                 finally:
                     runner.close()
         else:
-            qasync.run(main(args))
+            qasync.run(main())
     except asyncio.exceptions.CancelledError:
         sys.exit(0)
