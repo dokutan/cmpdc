@@ -33,11 +33,11 @@ desktop_notification = True
 logging.basicConfig(
     format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
-    level=logging.INFO
+    level=logging.INFO,
 )
 
 # disable QImage allocation limit
-os.environ['QT_IMAGEIO_MAXALLOC'] = "0"
+os.environ["QT_IMAGEIO_MAXALLOC"] = "0"
 
 
 def format_duration(duration):
@@ -56,23 +56,25 @@ def format_song(song):
     """Formats a song for the queue, search results, …"""
     return "%s\t%s\n\t%s  •  %s  •  %s" % (
         (song["track"] if "track" in song else "—"),
-        (song["title"] if "title" in song else (
-            song["file"] if "file" in song else "—"
-        )),
+        (
+            song["title"]
+            if "title" in song
+            else (song["file"] if "file" in song else "—")
+        ),
         (song["artist"] if "artist" in song else "—"),
         (song["album"] if "album" in song else "—"),
-        (format_duration(int(float(song["duration"])))
-         if "duration" in song else "—")
+        (format_duration(int(float(song["duration"]))) if "duration" in song else "—"),
     )
 
 
 def albumart_file_or_none(dir):
     """Looks for an image to be used as albumart in dir"""
     try:
-        files = \
-            glob.glob(dir + "/*.[Pp][Nn][Gg]") + \
-            glob.glob(dir + "/*.[Jj][Pp][Gg]") + \
-            glob.glob(dir + "/*.[Jj][Pp][Ee][Gg]")
+        files = (
+            glob.glob(dir + "/*.[Pp][Nn][Gg]")
+            + glob.glob(dir + "/*.[Jj][Pp][Gg]")
+            + glob.glob(dir + "/*.[Jj][Pp][Ee][Gg]")
+        )
 
         with open(files[0], "rb") as albumart:
             return albumart.read()
@@ -141,10 +143,11 @@ class CoverWidget(QWidget):
             x = 0
             y = 0
 
-            pixmap = self.pixmap.scaled(event.rect().size(),
-                                        Qt.AspectRatioMode.KeepAspectRatio,
-                                        Qt.TransformationMode.SmoothTransformation
-                                        )
+            pixmap = self.pixmap.scaled(
+                event.rect().size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
 
             if self.width() > pixmap.width():
                 x = int((self.width() - pixmap.width()) / 2)
@@ -161,8 +164,7 @@ class ElidingLabel(QLabel):
     def __init__(self, text=""):
         super().__init__()
 
-        self.setSizePolicy(QSizePolicy.Policy.Expanding,
-                           QSizePolicy.Policy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.setText(text)
 
     def setText(self, text):
@@ -184,11 +186,14 @@ class ElidingLabel(QLabel):
 
         if content_width > self.width():
             elided_content = font_metrics.elidedText(
-                self.content, Qt.TextElideMode.ElideRight, self.width())
+                self.content, Qt.TextElideMode.ElideRight, self.width()
+            )
             painter.drawText(QPointF(0, font_metrics.ascent()), elided_content)
         else:
-            painter.drawText(QPointF(self.width() - content_width,
-                             font_metrics.ascent()), self.content)
+            painter.drawText(
+                QPointF(self.width() - content_width, font_metrics.ascent()),
+                self.content,
+            )
 
         text_layout.endLayout()
 
@@ -221,7 +226,7 @@ class MainWindow(QWidget):
             await asyncio.gather(
                 self.check_for_updates(),
                 self.check_for_progress(),
-                self.check_for_info()
+                self.check_for_info(),
             )
         except asyncio.exceptions.CancelledError:
             pass
@@ -256,8 +261,9 @@ class MainWindow(QWidget):
 
         self.btn_random = QPushButton("Random")
         self.btn_random.setCheckable(True)
-        self.btn_random.clicked.connect(lambda _: self.client.random(
-            1 if self.btn_random.isChecked() else 0))
+        self.btn_random.clicked.connect(
+            lambda _: self.client.random(1 if self.btn_random.isChecked() else 0)
+        )
         grid.addWidget(self.btn_random, 0, 4, 2, 1)
 
         # currently playing labels
@@ -286,7 +292,7 @@ class MainWindow(QWidget):
                 logging.debug("song progress slider set to: " + str(value))
                 self.client.seekcur(value)
 
-        #self.sld_progress.valueChanged.connect(sld_progress_valueChanged)
+        # self.sld_progress.valueChanged.connect(sld_progress_valueChanged)
         self.sld_progress.sliderMoved.connect(sld_progress_valueChanged)
         progress_layout.addWidget(self.sld_progress)
 
@@ -333,8 +339,9 @@ class MainWindow(QWidget):
     def init_shortcuts(self):
         # show tabs
         tab1 = QShortcut(QKeySequence("Ctrl+1"), self)
-        tab1.activated.connect(lambda: (self.tabs.setCurrentIndex(0),
-                                        self.lst_queue.setFocus()))
+        tab1.activated.connect(
+            lambda: (self.tabs.setCurrentIndex(0), self.lst_queue.setFocus())
+        )
         tab2 = QShortcut(QKeySequence("Ctrl+2"), self)
         tab2.activated.connect(lambda: self.tabs.setCurrentIndex(1))
         tab3 = QShortcut(QKeySequence("Ctrl+3"), self)
@@ -350,7 +357,9 @@ class MainWindow(QWidget):
         center_current.activated.connect(self.center_on_current_song)
 
         toggle_random = QShortcut(QKeySequence("Ctrl+D"), self)
-        toggle_random.activated.connect(lambda: self.client.random(0 if self.btn_random.isChecked() else 1))
+        toggle_random.activated.connect(
+            lambda: self.client.random(0 if self.btn_random.isChecked() else 1)
+        )
 
         update_db = QShortcut(QKeySequence("F5"), self)
         update_db.activated.connect(lambda: self.client.update())
@@ -365,7 +374,11 @@ class MainWindow(QWidget):
 
         # kill/restart mpd
         kill = QShortcut(QKeySequence("Ctrl+Shift+K"), self)
-        kill.activated.connect(lambda: os.system("systemctl --user kill -s SIGKILL mpd.service; systemctl --user start mpd.service"))
+        kill.activated.connect(
+            lambda: os.system(
+                "systemctl --user kill -s SIGKILL mpd.service; systemctl --user start mpd.service"
+            )
+        )
 
         # save queue
         def save_queue_dialog():
@@ -375,7 +388,8 @@ class MainWindow(QWidget):
 
             cmb_playlist = QComboBox()
             cmb_playlist.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
             cmb_playlist.setEditable(True)
             cmb_playlist.setInsertPolicy(QComboBox.InsertPolicy.InsertAtBottom)
             vbox.addWidget(cmb_playlist)
@@ -383,10 +397,14 @@ class MainWindow(QWidget):
             for p in self.playlists:
                 cmb_playlist.addItem(p["playlist"])
 
-            QBtn = QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
+            QBtn = (
+                QDialogButtonBox.StandardButton.Save
+                | QDialogButtonBox.StandardButton.Cancel
+            )
             button_box = QDialogButtonBox(QBtn)
             button_box.accepted.connect(
-                lambda: (self.client.rm_save(cmb_playlist.currentText()), dlg.close()))
+                lambda: (self.client.rm_save(cmb_playlist.currentText()), dlg.close())
+            )
             button_box.rejected.connect(lambda: dlg.close())
             vbox.addWidget(button_box)
 
@@ -398,10 +416,10 @@ class MainWindow(QWidget):
     def create_lst_queue(self):
         lst_queue = QListWidget()
         lst_queue.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-        lst_queue.setSelectionMode(
-            QAbstractItemView.SelectionMode.ContiguousSelection)
+        lst_queue.setSelectionMode(QAbstractItemView.SelectionMode.ContiguousSelection)
         lst_queue.itemDoubleClicked.connect(
-            lambda i: self.client.play(self.lst_queue.row(i)))
+            lambda i: self.client.play(self.lst_queue.row(i))
+        )
 
         # drop event
         lst_queue.dropEvent_old = lst_queue.dropEvent
@@ -412,6 +430,7 @@ class MainWindow(QWidget):
             new_row = event.source().currentRow()
             self.skip_playlist_update = True
             self.client.move(old_row, new_row)
+
         lst_queue.dropEvent = dropEvent_new
 
         # key press event
@@ -430,11 +449,12 @@ class MainWindow(QWidget):
                 if len(indexes) == 1:
                     self.client.delete(indexes[0].row())
                 elif len(indexes) > 1:
-                    self.client.delete((indexes[-1].row(), indexes[0].row()+1))
+                    self.client.delete((indexes[-1].row(), indexes[0].row() + 1))
             elif event.key() == Qt.Key.Key_Space or event.key() == Qt.Key.Key_Return:
                 self.client.play(self.lst_queue.currentRow())
             else:
                 lst_queue.keyPressEvent_old(event)
+
         lst_queue.keyPressEvent = keyPressEvent_new
 
         return lst_queue
@@ -452,9 +472,13 @@ class MainWindow(QWidget):
 
         self.lst_search = QListWidget()
         self.lst_search.setSelectionMode(
-            QAbstractItemView.SelectionMode.ExtendedSelection)
+            QAbstractItemView.SelectionMode.ExtendedSelection
+        )
         self.lst_search.itemDoubleClicked.connect(
-            lambda i: self.client.add(self.search_results[self.lst_search.row(i)]["file"]))
+            lambda i: self.client.add(
+                self.search_results[self.lst_search.row(i)]["file"]
+            )
+        )
         vbox.addWidget(self.lst_search)
 
         # key press event
@@ -462,23 +486,29 @@ class MainWindow(QWidget):
 
         def keyPressEvent_new(event):
             # replace queue
-            if event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_R:
+            if (
+                event.modifiers() & Qt.KeyboardModifier.ControlModifier
+                and event.key() == Qt.Key.Key_R
+            ):
                 indexes = sorted(self.lst_search.selectedIndexes())
                 if len(indexes) > 0:
                     self.client.clear()
                     for index in indexes:
-                        self.client.add(
-                            self.search_results[index.row()]["file"])
+                        self.client.add(self.search_results[index.row()]["file"])
                     self.client.play()
 
             # add to queue
-            elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_P:
+            elif (
+                event.modifiers() & Qt.KeyboardModifier.ControlModifier
+                and event.key() == Qt.Key.Key_P
+            ):
                 indexes = sorted(self.lst_search.selectedIndexes())
                 for index in indexes:
                     self.client.add(self.search_results[index.row()]["file"])
 
             else:
                 self.lst_search.keyPressEvent_old(event)
+
         self.lst_search.keyPressEvent = keyPressEvent_new
 
         return tab_search
@@ -491,10 +521,11 @@ class MainWindow(QWidget):
 
         self.cmb_playlist = QComboBox()
         self.cmb_playlist.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Preferred)
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
         self.cmb_playlist.currentIndexChanged.connect(
-            lambda: self.show_stored_playlist())
+            lambda: self.show_stored_playlist()
+        )
         hbox.addWidget(self.cmb_playlist)
 
         @asyncSlot()
@@ -505,12 +536,14 @@ class MainWindow(QWidget):
 
         self.btn_playlist_play = QPushButton("Play")
         self.btn_playlist_play.clicked.connect(
-            lambda: load_playlist(self.cmb_playlist.currentText()))
+            lambda: load_playlist(self.cmb_playlist.currentText())
+        )
         hbox.addWidget(self.btn_playlist_play)
 
         self.btn_playlist_delete = QPushButton("Delete")
         self.btn_playlist_delete.clicked.connect(
-            lambda: self.client.rm(self.cmb_playlist.currentText()))
+            lambda: self.client.rm(self.cmb_playlist.currentText())
+        )
         hbox.addWidget(self.btn_playlist_delete)
 
         buttons_playlists.setLayout(hbox)
@@ -555,11 +588,11 @@ class MainWindow(QWidget):
             self.update_options(),
             self.update_playlist(),
             self.update_stored_playlist(),
-            self.update_info()
+            self.update_info(),
         )
 
         async for subsystems in self.client.idle():
-            #logging.debug("Change in ", subsystems)
+            # logging.debug("Change in ", subsystems)
             if "player" in subsystems:
                 await self.update_player()
                 await self.update_progress()
@@ -572,10 +605,11 @@ class MainWindow(QWidget):
 
     async def update_progress(self):
         """Update the song progress widgets"""
+
         def format_queue_position(status):
             try:
                 song = int(status["song"]) + 1
-                return (str(song) + " / " + status["playlistlength"])
+                return str(song) + " / " + status["playlistlength"]
             except Exception as e:
                 logging.error(e)
                 return "— / —"
@@ -588,9 +622,12 @@ class MainWindow(QWidget):
             self.sld_progress.setMaximum(song_duration)
             self.sld_progress.setValue(song_progress)
             self.lbl_progress.setText(
-                format_duration(song_progress) + " / " +
-                format_duration(song_duration) +
-                "  (" + format_queue_position(status) + ")"
+                format_duration(song_progress)
+                + " / "
+                + format_duration(song_duration)
+                + "  ("
+                + format_queue_position(status)
+                + ")"
             )
         except Exception as e:
             logging.error(e)
@@ -615,7 +652,11 @@ class MainWindow(QWidget):
         if self.last_currentsong != currentsong:
             self.last_currentsong = currentsong
 
-            title = currentsong["title"] if "title" in currentsong else (currentsong["file"] if "file" in currentsong else "—")
+            title = (
+                currentsong["title"]
+                if "title" in currentsong
+                else (currentsong["file"] if "file" in currentsong else "—")
+            )
             artist = currentsong["artist"] if "artist" in currentsong else "—"
             album = currentsong["album"] if "album" in currentsong else "—"
 
@@ -628,14 +669,17 @@ class MainWindow(QWidget):
 
             # show desktop notification
             if desktop_notification and not self.isActiveWindow():
-                await self.notifier.send(title=title, message=f"{artist}  •  {album}", icon="")
+                await self.notifier.send(
+                    title=title, message=f"{artist}  •  {album}", icon=""
+                )
 
             # try to get current cover from mpd
             albumart = await self.client.albumart_or_none(currentsong=currentsong)
             if albumart is None:
-                logging.debug(
-                    "albumart() returned no picture, trying readpicture()")
-                albumart = await self.client.readpicture_or_none(currentsong=currentsong)
+                logging.debug("albumart() returned no picture, trying readpicture()")
+                albumart = await self.client.readpicture_or_none(
+                    currentsong=currentsong
+                )
 
             # get detailed song info using mutagen
             if "file" in currentsong:
@@ -646,11 +690,20 @@ class MainWindow(QWidget):
 
                     # there doesn't seem to be a format independent way to access tag data,
                     # therefore the pprint() output is used and gets modified
-                    text = \
-                        "<h3>File</h3>" + file_path + \
-                        "<h3>Audio</h3>" + \
-                        re.sub("\n.+=",
-                               lambda s: ("<h3>" + s.group(0).replace("\n", "").capitalize() + "</h3>").replace("=</h3>", "</h3>"), mutagen_info)
+                    text = (
+                        "<h3>File</h3>"
+                        + file_path
+                        + "<h3>Audio</h3>"
+                        + re.sub(
+                            "\n.+=",
+                            lambda s: (
+                                "<h3>"
+                                + s.group(0).replace("\n", "").capitalize()
+                                + "</h3>"
+                            ).replace("=</h3>", "</h3>"),
+                            mutagen_info,
+                        )
+                    )
                     text = text.replace("\n", "<br/>")
                     self.lbl_current_info.setHtml(text)
 
@@ -658,20 +711,21 @@ class MainWindow(QWidget):
                     try:
                         if albumart is None:
                             logging.debug(
-                                "readpicture() returned no picture, trying mutagen")
+                                "readpicture() returned no picture, trying mutagen"
+                            )
                             albumart = mutagen_file.pictures[0].data
                     except Exception as e:
                         logging.warning(e)
                 except Exception as e:
                     self.lbl_current_info.setText("")
                     logging.warning(
-                        "Failed to obtain song information using mutagen: " + str(e))
+                        "Failed to obtain song information using mutagen: " + str(e)
+                    )
 
                 # if neither mpd nor mutagen has a cover, look in the filesystem
                 if albumart is None:
                     dir_path = os.path.dirname(file_path)
-                    logging.debug(
-                        "mutagen returned no picture, looking in " + dir_path)
+                    logging.debug("mutagen returned no picture, looking in " + dir_path)
                     albumart = albumart_file_or_none(dir_path)
 
             # set background of play queue to cover
@@ -699,7 +753,7 @@ class MainWindow(QWidget):
         playlist = await self.client.playlistinfo()
 
         # clear self.lst_queue
-        for i in range(self.lst_queue.count()-1, -1, -1):
+        for i in range(self.lst_queue.count() - 1, -1, -1):
             self.lst_queue.takeItem(i)
 
         for track in playlist:
@@ -723,7 +777,8 @@ class MainWindow(QWidget):
 
     async def update_info(self):
         stats = await self.client.stats()
-        self.lbl_info.setHtml(f"""<h3>mpd statistics</h3>
+        self.lbl_info.setHtml(
+            f"""<h3>mpd statistics</h3>
         <table>
         <tr><td>artists: </td><td>{stats['artists']}</td></tr>
         <tr><td>albums: </td><td>{stats['albums']}</td></tr>
@@ -739,13 +794,14 @@ class MainWindow(QWidget):
         <tr><td>mpd_port: </td><td>{mpd_port}</td></tr>
         <tr><td>music_directory: </td><td>{music_directory}</td></tr>
         </table>
-        """)
+        """
+        )
 
     @asyncSlot()
     async def show_stored_playlist(self):
         playlist = await self.client.listplaylistinfo(self.cmb_playlist.currentText())
 
-        for i in range(self.lst_playlist.count()-1, -1, -1):
+        for i in range(self.lst_playlist.count() - 1, -1, -1):
             self.lst_playlist.takeItem(i)
 
         for track in playlist:
@@ -755,7 +811,7 @@ class MainWindow(QWidget):
     async def update_lst_search(self):
         self.search_results = await self.client.search("any", self.edt_search.text())
 
-        for i in range(self.lst_search.count()-1, -1, -1):
+        for i in range(self.lst_search.count() - 1, -1, -1):
             self.lst_search.takeItem(i)
 
         for track in self.search_results:
@@ -770,7 +826,7 @@ class MainWindow(QWidget):
             self.lst_queue.setCurrentRow(int(currentsong["pos"]))
             self.lst_queue.scrollToItem(
                 self.lst_queue.item(int(currentsong["pos"])),
-                QAbstractItemView.ScrollHint.PositionAtCenter
+                QAbstractItemView.ScrollHint.PositionAtCenter,
             )
 
     @asyncClose
