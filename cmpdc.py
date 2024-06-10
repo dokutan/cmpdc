@@ -22,13 +22,13 @@ import qasync
 from qasync import asyncSlot, asyncClose, QApplication
 
 # config
-mpd_host = "localhost"
-mpd_port = 6600
-mpd_passwd = ""
-music_directory = os.getenv("HOME") + "/Music"
-theme = "Adwaita-Dark"
-font = None  # QFont("IBM Plex Serif") # can be None or a QFont
-desktop_notification = True
+MPD_HOST = "localhost"
+MPD_PORT = 6600
+MPD_PASSWD = ""
+MUSIC_DIRECTORY = os.getenv("HOME") + "/Music"
+THEME = "Adwaita-Dark"
+FONT = None  # QFONT("IBM Plex Serif") # can be None or a QFONT
+DESKTOP_NOTIFICATION = True
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s",
@@ -36,12 +36,12 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-# disable QImage allocation limit
+# disable QImage allocation limit, otherwise large covers are not shown
 os.environ["QT_IMAGEIO_MAXALLOC"] = "0"
 
 
-def format_duration(duration):
-    """Formats a duration"""
+def format_duration(duration: int) -> str:
+    """Formats a duration."""
     h = duration // 3600
     duration = duration % 3600
     m = duration // 60
@@ -52,22 +52,18 @@ def format_duration(duration):
         return "{:02d}:{:02d}".format(m, s)
 
 
-def format_song(song):
+def format_song(song: dict) -> str:
     """Formats a song for the queue, search results, …"""
     return "%s\t%s\n\t%s  •  %s  •  %s" % (
-        (song["track"] if "track" in song else "—"),
-        (
-            song["title"]
-            if "title" in song
-            else (song["file"] if "file" in song else "—")
-        ),
-        (song["artist"] if "artist" in song else "—"),
-        (song["album"] if "album" in song else "—"),
-        (format_duration(int(float(song["duration"]))) if "duration" in song else "—"),
+        song["track"] if "track" in song else "—",
+        song["title"] if "title" in song else (song["file"] if "file" in song else "—"),
+        song["artist"] if "artist" in song else "—",
+        song["album"] if "album" in song else "—",
+        format_duration(int(float(song["duration"]))) if "duration" in song else "—",
     )
 
 
-def albumart_file_or_none(dir):
+def albumart_file_or_none(dir: str) -> bytes | None:
     """Looks for an image to be used as albumart in dir"""
     try:
         files = (
@@ -83,6 +79,8 @@ def albumart_file_or_none(dir):
 
 
 class MPDClient2(MPDClient):
+    "This class wraps MPDClient from mpd.asyncio for additional methods."
+
     def __init__(self):
         super().__init__()
 
@@ -96,7 +94,7 @@ class MPDClient2(MPDClient):
             self.play()
 
     @asyncSlot()
-    async def albumart_or_none(self, currentsong=None):
+    async def albumart_or_none(self, currentsong: dict | None = None) -> bytes | None:
         """Returns the albumart of the current song or None"""
         try:
             if currentsong is None:
@@ -107,7 +105,9 @@ class MPDClient2(MPDClient):
             return None
 
     @asyncSlot()
-    async def readpicture_or_none(self, currentsong=None):
+    async def readpicture_or_none(
+        self, currentsong: dict | None = None
+    ) -> bytes | None:
         """Returns the albumart of the current song or None"""
         try:
             if currentsong is None:
@@ -232,9 +232,9 @@ class MainWindow(QWidget):
             pass
 
     async def init_client(self):
-        await self.client.connect(mpd_host, mpd_port)
-        if mpd_passwd != "":
-            await self.client.password(mpd_passwd)
+        await self.client.connect(MPD_HOST, MPD_PORT)
+        if MPD_PASSWD != "":
+            await self.client.password(MPD_PASSWD)
 
     def init_gui(self):
         grid = QGridLayout()
@@ -668,7 +668,7 @@ class MainWindow(QWidget):
             self.lbl_current_artist_album.setText(f"{artist}  •  {album}")
 
             # show desktop notification
-            if desktop_notification and not self.isActiveWindow():
+            if DESKTOP_NOTIFICATION and not self.isActiveWindow():
                 await self.notifier.send(
                     title=title, message=f"{artist}  •  {album}", icon=""
                 )
@@ -683,7 +683,7 @@ class MainWindow(QWidget):
 
             # get detailed song info using mutagen
             if "file" in currentsong:
-                file_path = os.path.join(music_directory, currentsong["file"])
+                file_path = os.path.join(MUSIC_DIRECTORY, currentsong["file"])
                 try:
                     mutagen_file = mutagen.File(file_path)
                     mutagen_info = mutagen_file.pprint()
@@ -790,9 +790,9 @@ class MainWindow(QWidget):
 
         <h3>cmpdc configuration</h3>
         <table>
-        <tr><td>mpd_host: </td><td>{mpd_host}</td></tr>
-        <tr><td>mpd_port: </td><td>{mpd_port}</td></tr>
-        <tr><td>music_directory: </td><td>{music_directory}</td></tr>
+        <tr><td>MPD_HOST: </td><td>{MPD_HOST}</td></tr>
+        <tr><td>MPD_PORT: </td><td>{MPD_PORT}</td></tr>
+        <tr><td>MUSIC_DIRECTORY: </td><td>{MUSIC_DIRECTORY}</td></tr>
         </table>
         """
         )
@@ -848,9 +848,9 @@ async def main():
             functools.partial(close_future, future, loop)
         )
 
-    app.setStyle(theme)
-    if font is not None:
-        app.setFont(font)
+    app.setStyle(THEME)
+    if FONT is not None:
+        app.setFont(FONT)
 
     main_window = MainWindow()
     main_window.show()
