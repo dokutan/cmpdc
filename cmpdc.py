@@ -27,7 +27,7 @@ MPD_PORT = 6600
 MPD_PASSWD = ""
 MUSIC_DIRECTORY = os.getenv("HOME") + "/Music"
 THEME = "Adwaita-Dark"
-FONT = None  # QFONT("IBM Plex Serif") # can be None or a QFONT
+FONT = None  # QFont("IBM Plex Serif") # can be None or a QFont
 DESKTOP_NOTIFICATION = True
 
 logging.basicConfig(
