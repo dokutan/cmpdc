@@ -212,7 +212,7 @@ class MainWindow(QWidget):
         self.playlists = None
 
         self.client = MPDClient2()
-        self.notifier = DesktopNotifier()
+        self.notifier = DesktopNotifier("cmpdc", None)
         self.async_init()
 
     @asyncSlot()
