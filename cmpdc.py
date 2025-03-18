@@ -54,9 +54,10 @@ def format_duration(duration: int) -> str:
 
 def format_song(song: dict) -> str:
     """Formats a song for the queue, search results, …"""
-    return "%s\t%s\n\t%s  •  %s  •  %s" % (
+    return "%s\t%s\n%s\t%s  •  %s  •  %s" % (
         song["track"] if "track" in song else "—",
         song["title"] if "title" in song else (song["file"] if "file" in song else "—"),
+        song["prio"] if "prio" in song else "",
         song["artist"] if "artist" in song else "—",
         song["album"] if "album" in song else "—",
         format_duration(int(float(song["duration"]))) if "duration" in song else "—",
@@ -126,7 +127,6 @@ class MPDClient2(MPDClient):
             pass
         finally:
             self.save(name)
-
 
 class CoverWidget(QWidget):
     """A custom widget to display an album cover"""
@@ -210,6 +210,7 @@ class MainWindow(QWidget):
         self.skip_progress_update = False
         self.song_progress = None
         self.playlists = None
+        self.selected_songs = None
 
         self.client = MPDClient2()
         self.notifier = DesktopNotifier("cmpdc", None)
@@ -371,6 +372,11 @@ class MainWindow(QWidget):
         toggle.activated.connect(lambda: self.client.previous())
         toggle = QShortcut(QKeySequence("Ctrl+Right"), self)
         toggle.activated.connect(lambda: self.client.next())
+
+        # change prio
+        QShortcut(QKeySequence("Ctrl++"), self).activated.connect(lambda: self.change_prio(+1))
+        QShortcut(QKeySequence("Ctrl+-"), self).activated.connect(lambda: self.change_prio(-1))
+        QShortcut(QKeySequence("Ctrl+0"), self).activated.connect(lambda: self.change_prio(0))
 
         # kill/restart mpd
         kill = QShortcut(QKeySequence("Ctrl+Shift+K"), self)
@@ -750,14 +756,19 @@ class MainWindow(QWidget):
             self.skip_playlist_update = False
             return
 
-        playlist = await self.client.playlistinfo()
+        self.playlist = await self.client.playlistinfo()
 
         # clear self.lst_queue
         for i in range(self.lst_queue.count() - 1, -1, -1):
             self.lst_queue.takeItem(i)
 
-        for track in playlist:
+        for track in self.playlist:
             self.lst_queue.addItem(format_song(track))
+
+        if self.selected_songs is not None:
+            for position in self.selected_songs:
+                self.lst_queue.item(position).setSelected(True)
+            self.selected_songs = None
 
     async def update_options(self):
         """Update the widgets when the options subsystem has changed"""
@@ -828,6 +839,16 @@ class MainWindow(QWidget):
                 self.lst_queue.item(int(currentsong["pos"])),
                 QAbstractItemView.ScrollHint.PositionAtCenter,
             )
+
+    @asyncSlot()
+    async def change_prio(self, prio):
+        """Change the priority of the selected songs by `prio`."""
+        selected_songs = [index.row() for index in self.lst_queue.selectedIndexes()]
+        if len(selected_songs) > 0:
+            for position in selected_songs:
+                new_prio = 0 if prio == 0 else int(self.playlist[position].get("prio", 0)) + prio
+                await self.client.prio(min(max(new_prio, 0), 255), position)
+            self.selected_songs = selected_songs # restore selection in update_playlist()
 
     @asyncClose
     async def closeEvent(self, event):

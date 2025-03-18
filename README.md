@@ -33,3 +33,4 @@ cmpc is designed to be configured/customized by editing the source code.
 - Ctrl+R: (search) replace queue with selection
 - Ctrl+S: save queue as playlist
 - Crtl+Shift+K: kill and restart mpd
+- Ctrl++, Ctrl+-, Ctrl+0: change priority of the selected songs in the queue
